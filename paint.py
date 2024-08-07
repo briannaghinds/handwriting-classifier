@@ -3,6 +3,9 @@
 # import pygame
 import pygame
 import Button
+import cv2
+import torch
+import matplotlib.pyplot as plt
 
 
 ## FUNCTIONS ######################################################################################################
@@ -62,6 +65,7 @@ def drawPainting(items):
 
 
 # take screenshot function, this runs whenever the user presses the done button
+# v1: add the prediction part
 def takeScreenshot():
     print("screenshot button pressed")
     global picture
@@ -72,10 +76,32 @@ def takeScreenshot():
     
 
     # take screenshot of canvas subScreen
-    pygame.image.save(subScreen, "handwritting/image{}.png".format(picture))
+    pygame.image.save(subScreen, f"handwriting/image{picture}.png")
+    path = f"handwriting/image{picture}.png"
+    print(path)
+    predict(path)
+
 
     # increment picture so the next picture saves under different name
     picture += 1
+
+
+def predict(image_path:str):
+    # get image, grayscale, resize 
+    img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    img = cv2.resize(img, (28,28))
+
+    # turn to tensor
+    data = torch.from_numpy(img).unsqueeze(0).float() / 255.0
+    data = torch.reshape(data, (1, 28, 28))
+
+    model = torch.load("models\handwritten_GNN_model.pth")
+    output = model(data)
+    pred = output.argmax(dim=1, keepdim=True)
+
+    plt.imshow(img, cmap="gray")
+
+    print(f"Model Predicts...{pred.item()}")
 
 
 def clearScreen():
@@ -104,6 +130,14 @@ painting = []
 picture = 0
 run = True
 
+## CLEAR BUTTON ##
+# load the image
+CLEAR = pygame.image.load("buttons/clear.png").convert_alpha()
+SCREENSHOT = pygame.image.load("buttons/screenshot.png").convert_alpha()
+
+# call the Button class and set the image as the button
+clearButton = Button.Button(625, 9, CLEAR, 0.16)
+screenshotButton = Button.Button(550, 9, SCREENSHOT, 0.16)
 
 while run:
     timer.tick(FPS)
@@ -127,15 +161,6 @@ while run:
 
     # drawing the toolbar
     brushes, color, rgbCode = draw_menu(penSize, penColor)
-
-    ## CLEAR BUTTON ##
-    # load the image
-    CLEAR = pygame.image.load("buttons/clear.png").convert_alpha()
-    SCREENSHOT = pygame.image.load("buttons/screenshot.png").convert_alpha()
-
-    # call the Button class and set the image as the button
-    clearButton = Button.Button(625, 9, CLEAR, 0.16)
-    screenshotButton = Button.Button(550, 9, SCREENSHOT, 0.16)
 
     # put the buttons on the screen
     clearButton.draw(screen)
