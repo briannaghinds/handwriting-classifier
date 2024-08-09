@@ -95,8 +95,10 @@ def predict(image_path:str):
     data = torch.from_numpy(img).unsqueeze(0).float() / 255.0
     data = torch.reshape(data, (1, 28, 28))
 
-    model = torch.load(".\models\handwritten_GNN_model.pth")
+    # load model
+    model = torch.load("./model/handwritten_CNN_model.pth")
     model.eval()
+
     output = model(data)
     pred = output.argmax(dim=1, keepdim=True)
 
